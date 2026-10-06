@@ -1,54 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
+import catalogEntries from "../catalog.json";
 
-const fallbackProducts = [
-  {
-    id: "sample-1",
-    brand: "OAKLEY",
-    name: "Flak 2.0 XL",
-    category: "Спорт",
-    description: "Лёгкая спортивная оправа для активного ритма жизни. Широкие линзы и цепкая посадка — когда стиль движется вместе с вами.",
-    price: null,
-    image_url: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=1000&q=85",
-    featured: true,
-  },
-  {
-    id: "sample-2",
-    brand: "OAKLEY",
-    name: "Pitchman R OO9439",
-    category: "Солнцезащитные",
-    description: "Современная интерпретация круглой формы с выразительными линзами и лаконичными деталями.",
-    price: null,
-    image_url: "https://images.unsplash.com/photo-1577803645773-f96470509666?auto=format&fit=crop&w=1000&q=85",
-    featured: false,
-  },
-  {
-    id: "sample-3",
-    brand: "MIU MIU",
-    name: "MU A51S",
-    category: "Солнцезащитные",
-    description: "Узкий силуэт, металлические детали и зеркальные линзы — яркий акцент для образа с характером.",
-    price: null,
-    image_url: "https://images.unsplash.com/photo-1508296695146-257a814070b4?auto=format&fit=crop&w=1000&q=85",
-    featured: false,
-  },
-  {
-    id: "sample-4",
-    brand: "MIU MIU",
-    name: "MU B07S",
-    category: "Солнцезащитные",
-    description: "Графичная прямоугольная форма, выразительная оправа и тонкие фирменные детали.",
-    price: null,
-    image_url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1000&q=85",
-    featured: false,
-  },
+const fallbackProducts = catalogEntries.map((product, index) => ({
+  ...product,
+  id: `catalog-${index + 1}`,
+}));
+const categories = [
+  "Все модели",
+  "Смарт-очки",
+  "Женские",
+  "Мужские",
+  "Оптические",
+  "Спорт",
+  "Контактные линзы",
+  "Растворы",
 ];
-
-const categories = ["Все модели", "Солнцезащитные", "Оптические", "Спорт"];
 const staticDemo = import.meta.env.VITE_DEMO_MODE === "true";
 
 function formatPrice(price) {
   if (price == null || price === "") return "Уточняйте в бутике";
   return `${new Intl.NumberFormat("ru-BY").format(price)} BYN`;
+}
+
+function productCountLabel(count) {
+  const lastTwoDigits = count % 100;
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return "моделей";
+  if (count % 10 === 1) return "модель";
+  if (count % 10 >= 2 && count % 10 <= 4) return "модели";
+  return "моделей";
 }
 
 function Icon({ name, size = 20 }) {
@@ -130,7 +109,7 @@ function ProductEditor({ product, onClose, onSave, busy }) {
         <div className="form-grid">
           <label>Бренд<input required maxLength="100" value={form.brand} onChange={set("brand")} placeholder="Например, Ray-Ban" /></label>
           <label>Название модели<input required maxLength="140" value={form.name} onChange={set("name")} placeholder="Название или артикул" /></label>
-          <label>Категория<select value={form.category} onChange={set("category")}><option>Солнцезащитные</option><option>Оптические</option><option>Спорт</option><option>Аксессуары</option></select></label>
+          <label>Категория<select value={form.category} onChange={set("category")}>{categories.slice(1).map((item) => <option key={item}>{item}</option>)}</select></label>
           <label>Цена, BYN<input type="number" min="0" step="0.01" value={form.price} onChange={set("price")} placeholder="Оставьте пустым, если по запросу" /></label>
           <label className="full-field">Ссылка на фото<input type="url" value={form.image_url} onChange={set("image_url")} placeholder="https://…" /></label>
           <label className="full-field">Описание<textarea required maxLength="2000" rows="4" value={form.description} onChange={set("description")} placeholder="Опишите особенности оправы и линз" /></label>
@@ -284,7 +263,7 @@ export default function App() {
 
         <section className="catalog section-wrap" id="catalog">
           <div className="section-heading"><div><span className="eyebrow">Ваш следующий любимый аксессуар</span><h2>Выбрали для вас<span className="dot">.</span></h2></div><label className="search"><Icon name="search" size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти модель" aria-label="Найти модель" /></label></div>
-          <div className="catalog-toolbar"><div className="filters" role="group" aria-label="Фильтр по категории">{categories.map((item) => <button key={item} className={item === category ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}</div><span className="results-count">{visibleProducts.length} {visibleProducts.length === 1 ? "модель" : "модели"}</span></div>
+          <div className="catalog-toolbar"><div className="filters" role="group" aria-label="Фильтр по категории">{categories.map((item) => <button key={item} className={item === category ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}</div><span className="results-count">{visibleProducts.length} {productCountLabel(visibleProducts.length)}</span></div>
           {admin && <div className="admin-bar"><div><span className="admin-status" />Вы вошли как администратор <span className="admin-help">— каталог виден покупателям сразу после сохранения</span></div><button className="button button-dark" onClick={() => setEditing(null)}><Icon name="plus" size={17} /> Добавить модель</button></div>}
           <div className="product-grid">{visibleProducts.map((product) => <ProductCard key={product.id} product={product} onOpen={setActiveProduct} admin={admin} onEdit={setEditing} onDelete={deleteProduct} />)}</div>
           {visibleProducts.length === 0 && <div className="empty-state">По вашему запросу ничего не найдено. Попробуйте изменить фильтр.</div>}

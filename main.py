@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import secrets
 import sqlite3
@@ -17,6 +18,7 @@ from pydantic import BaseModel, Field, field_validator
 load_dotenv()
 
 DATABASE_PATH = Path(os.getenv("DATABASE_PATH", "./seesol.db"))
+CATALOG_PATH = Path(__file__).with_name("catalog.json")
 
 
 def connect_db():
@@ -80,51 +82,83 @@ async def lifespan(_: FastAPI):
             """
         )
         seeded = connection.execute(
-            "SELECT value FROM catalog_settings WHERE key = 'starter_catalog_seeded'"
+            "SELECT value FROM catalog_settings WHERE key = 'source_catalog_v1_seeded'"
         ).fetchone()
         if seeded is None:
-            connection.executemany(
-                """
-                INSERT INTO products (brand, name, category, description, price, image_url, featured)
-                VALUES (?, ?, ?, ?, NULL, ?, ?)
-                """,
-                [
+            catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+            legacy_demo_products = [
+                (
+                    "OAKLEY",
+                    "Flak 2.0 XL",
+                    "Спортивная модель с увеличенными линзами и лёгкой оправой. Надёжная посадка подойдёт для активного отдыха и повседневных маршрутов.",
+                    "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=1000&q=85",
+                    None,
+                    1,
+                ),
+                (
+                    "OAKLEY",
+                    "Pitchman R OO9439",
+                    "Современная интерпретация круглой формы с выразительными линзами и лаконичными деталями.",
+                    "https://images.unsplash.com/photo-1577803645773-f96470509666?auto=format&fit=crop&w=1000&q=85",
+                    None,
+                    0,
+                ),
+                (
+                    "MIU MIU",
+                    "MU A51S",
+                    "Узкий силуэт, металлические детали и зеркальные линзы — яркий акцент для образа с характером.",
+                    "https://images.unsplash.com/photo-1508296695146-257a814070b4?auto=format&fit=crop&w=1000&q=85",
+                    None,
+                    0,
+                ),
+                (
+                    "MIU MIU",
+                    "MU B07S",
+                    "Графичная прямоугольная форма, выразительная оправа и тонкие фирменные детали.",
+                    "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1000&q=85",
+                    None,
+                    0,
+                ),
+            ]
+            existing = connection.execute("SELECT * FROM products").fetchall()
+            if len(existing) == len(legacy_demo_products):
+                existing_legacy = {
                     (
-                        "OAKLEY",
-                        "Flak 2.0 XL",
-                        "Спорт",
-                        "Спортивная модель с увеличенными линзами и лёгкой оправой. Надёжная посадка подойдёт для активного отдыха и повседневных маршрутов.",
-                        "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=1000&q=85",
-                        1,
-                    ),
-                    (
-                        "OAKLEY",
-                        "Pitchman R OO9439",
-                        "Солнцезащитные",
-                        "Современная интерпретация круглой формы с выразительными линзами и лаконичными деталями.",
-                        "https://images.unsplash.com/photo-1577803645773-f96470509666?auto=format&fit=crop&w=1000&q=85",
-                        0,
-                    ),
-                    (
-                        "MIU MIU",
-                        "MU A51S",
-                        "Солнцезащитные",
-                        "Узкий силуэт, металлические детали и зеркальные линзы — яркий акцент для образа с характером.",
-                        "https://images.unsplash.com/photo-1508296695146-257a814070b4?auto=format&fit=crop&w=1000&q=85",
-                        0,
-                    ),
-                    (
-                        "MIU MIU",
-                        "MU B07S",
-                        "Солнцезащитные",
-                        "Графичная прямоугольная форма, выразительная оправа и тонкие фирменные детали.",
-                        "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1000&q=85",
-                        0,
-                    ),
-                ],
-            )
+                        item["brand"],
+                        item["name"],
+                        item["description"],
+                        item["image_url"],
+                        item["price"],
+                        int(item["featured"]),
+                    )
+                    for item in existing
+                }
+                if existing_legacy == set(legacy_demo_products):
+                    connection.execute("DELETE FROM products")
+
+            for product in catalog:
+                exists = connection.execute(
+                    "SELECT 1 FROM products WHERE brand = ? AND name = ?",
+                    (product["brand"], product["name"]),
+                ).fetchone()
+                if exists is None:
+                    connection.execute(
+                        """
+                        INSERT INTO products (brand, name, category, description, price, image_url, featured)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            product["brand"],
+                            product["name"],
+                            product["category"],
+                            product["description"],
+                            product["price"],
+                            product["image_url"],
+                            int(product.get("featured", False)),
+                        ),
+                    )
             connection.execute(
-                "INSERT INTO catalog_settings (key, value) VALUES ('starter_catalog_seeded', '1')"
+                "INSERT INTO catalog_settings (key, value) VALUES ('source_catalog_v1_seeded', '1')"
             )
         connection.commit()
     yield
