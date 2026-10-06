@@ -44,6 +44,7 @@ const fallbackProducts = [
 ];
 
 const categories = ["Все модели", "Солнцезащитные", "Оптические", "Спорт"];
+const staticDemo = import.meta.env.VITE_DEMO_MODE === "true";
 
 function formatPrice(price) {
   if (price == null || price === "") return "Уточняйте в бутике";
@@ -170,10 +171,12 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
+    if (staticDemo) return;
     fetch("/api/products").then((response) => response.ok ? response.json() : Promise.reject(new Error("Не удалось загрузить каталог"))).then((data) => setProducts(data)).catch(() => {});
   }, []);
 
   useEffect(() => {
+    if (staticDemo) return;
     const password = sessionStorage.getItem("seesol-admin");
     if (!password) return;
     fetch("/api/admin/check", { method: "POST", headers: { "X-Admin-Password": password } })
@@ -265,7 +268,7 @@ export default function App() {
         <button className="mobile-menu icon-button" onClick={() => setMenuOpen((value) => !value)} aria-label="Открыть меню"><Icon name="menu" /></button>
         <a className="wordmark" href="#" aria-label="See and Sol — на главную">see<span>&</span>sol<small>OPTICAL BOUTIQUE</small></a>
         <nav className={menuOpen ? "nav open" : "nav"}><a href="#catalog" onClick={() => setMenuOpen(false)}>Коллекция</a><a href="#about" onClick={() => setMenuOpen(false)}>О бутике</a><a href="#contact" onClick={() => setMenuOpen(false)}>Контакты</a></nav>
-        <div className="header-actions"><a href="https://www.instagram.com/seesol.by/" target="_blank" rel="noreferrer" className="social-link"><Icon name="instagram" size={17} /><span>Instagram</span></a>{admin ? <button className="admin-header" onClick={logout}>Выйти из админ-панели</button> : <button className="admin-entry" onClick={() => setLoginOpen(true)} aria-label="Вход для администратора"><Icon name="lock" size={16} /></button>}</div>
+        <div className="header-actions"><a href="https://www.instagram.com/seesol.by/" target="_blank" rel="noreferrer" className="social-link"><Icon name="instagram" size={17} /><span>Instagram</span></a>{!staticDemo && (admin ? <button className="admin-header" onClick={logout}>Выйти из админ-панели</button> : <button className="admin-entry" onClick={() => setLoginOpen(true)} aria-label="Вход для администратора"><Icon name="lock" size={16} /></button>)}</div>
       </header>
 
       <main>

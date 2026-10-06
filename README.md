@@ -36,3 +36,9 @@ ADMIN_PASSWORD='ваш-длинный-уникальный-пароль' uvicorn
 ```
 
 После сборки FastAPI раздаёт `dist` и API с одного origin. Для публичного размещения используйте HTTPS и задайте надёжный `ADMIN_PASSWORD`; SQLite-файл должен находиться на постоянном диске.
+
+## Просмотр на GitHub Pages
+
+Workflow автоматически собирает статическую витрину и публикует её при каждом push в `main`. После успешного запуска GitHub Actions сайт будет доступен по адресу https://vaskatopone.github.io/seesol/. Workflow также можно запустить вручную во вкладке **Actions**. Для репозитория должен быть разрешён источник GitHub Pages **GitHub Actions** (Settings → Pages → Build and deployment → Source).
+
+Pages показывает витрину и стартовые карточки в демонстрационном режиме. Управление каталогом требует запущенного FastAPI backend, поэтому на статическом preview админ-панель отключена.
